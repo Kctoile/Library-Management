@@ -1,66 +1,72 @@
 package servlet;
 
-import dao.DBConnection;
 import dao.UserDAO;
 import model.User;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class LoginServlet extends HttpServlet {
 
     private final UserDAO userDAO = new UserDAO();
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Already logged in → redirect to home
-        HttpSession session = req.getSession(false);
-        if (session != null && session.getAttribute("user") != null) {
-            redirectByRole((User) session.getAttribute("user"), resp);
-            return;
-        }
-        req.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(req, resp);
+        request.getRequestDispatcher("/WEB-INF/views/login.jsp")
+                .forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String username = req.getParameter("username");
-        String password = req.getParameter("password");
 
-        if (username == null || username.isBlank() || password == null || password.isBlank()) {
-            req.setAttribute("error", "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
-            req.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(req, resp);
+        request.setCharacterEncoding("UTF-8");
+
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+
+        if (username == null || username.trim().isEmpty()
+                || password == null || password.isEmpty()) {
+
+            request.setAttribute("error", "Vui lòng nhập tài khoản và mật khẩu");
+            request.getRequestDispatcher("/WEB-INF/views/login.jsp")
+                    .forward(request, response);
             return;
         }
 
         try {
             User user = userDAO.findByUsername(username.trim());
-            if (user != null && user.getPasswordHash().equals(DBConnection.hash(password))) {
-                HttpSession session = req.getSession(true);
-                session.setAttribute("user", user);
-                session.setMaxInactiveInterval(30 * 60); // 30 minutes
-                redirectByRole(user, resp);
-            } else {
-                req.setAttribute("error", "Tên đăng nhập hoặc mật khẩu không đúng.");
-                req.setAttribute("username", username); // preserve input
-                req.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(req, resp);
-            }
-        } catch (Exception e) {
-            throw new ServletException("Login error", e);
-        }
-    }
 
-    private void redirectByRole(User user, HttpServletResponse resp) throws IOException {
-        if ("ADMIN".equals(user.getRole())) {
-            resp.sendRedirect(resp.encodeRedirectURL("../admin/books"));
-        } else {
-            resp.sendRedirect(resp.encodeRedirectURL("../student/books"));
+            // checkpw tự lấy salt bên trong hash đã lưu
+            if (user != null && BCrypt.checkpw(password, user.getPasswordHash())) {
+
+                HttpSession session = request.getSession();
+                session.setAttribute("user", user);
+
+                if ("ADMIN".equals(user.getRole())) {
+                    response.sendRedirect(
+                            response.encodeRedirectURL(request.getContextPath() + "/admin/books"));
+                } else {
+                    response.sendRedirect(
+                            response.encodeRedirectURL(request.getContextPath() + "/student/books"));
+                }
+                return;
+            }
+
+            request.setAttribute("error", "Tài khoản hoặc mật khẩu không chính xác");
+            request.setAttribute("inputUsername", username.trim());
+            request.getRequestDispatcher("/WEB-INF/views/login.jsp")
+                    .forward(request, response);
+
+        } catch (Exception e) {
+            throw new ServletException(e);
         }
     }
 }
