@@ -1,0 +1,21 @@
+/* style.css — Library Management System */
+
+/* Flash messages */
+.alert { border-radius: 6px; }
+
+/* Table tweaks */
+.table th { white-space: nowrap; }
+.table-responsive { overflow-x: auto; }
+
+/* Badge status colors */
+.badge-borrowing { background-color: #0d6efd; }
+.badge-returned  { background-color: #198754; }
+.badge-overdue   { background-color: #dc3545; }
+
+/* Form max-width on large screens */
+@media (min-width: 768px) {
+    .form-narrow { max-width: 540px; }
+}
+
+/* Card hover on book list */
+.book-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transition: box-shadow .2s; }

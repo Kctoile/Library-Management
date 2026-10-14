@@ -1,0 +1,20 @@
+# Build output
+bin/
+build/
+target/
+out/
+*.class
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+nbproject/private/
+
+# OS
+.DS_Store
+Thumbs.db
